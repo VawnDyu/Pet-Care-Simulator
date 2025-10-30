@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Sparkles from "./Sparkles";
+import { getAssetPath } from "../utils/getAssetPath";
 
 function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick }) {
   const [mood, setMood] = useState("neutral");
@@ -108,7 +109,7 @@ function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick })
       {message && <div key={message} className="speech-bubble">{message}</div>}
       {!isSick && <Sparkles show={showSparkles} timestamp={sparkleTimestamp} />}
       <img
-        src={`/${mood}.png`}
+        src={getAssetPath(`${mood}.png`)}
         alt={`${mood} pet`}
         className={`pet-image ${mood}`}
       />

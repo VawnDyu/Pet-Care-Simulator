@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { getAssetPath } from "../utils/getAssetPath";
 
 export function usePetActions() {
   const [lastAction, setLastAction] = useState({ type: null, id: 0 });
@@ -11,9 +12,9 @@ export function usePetActions() {
 
   // Initialize sound instances once
   useEffect(() => {
-    feedSoundRef.current = new Audio("/sounds/feed.mp3");
-    playSoundRef.current = new Audio("/sounds/play.mp3");
-    restSoundRef.current = new Audio("/sounds/rest.mp3");
+    feedSoundRef.current = new Audio(getAssetPath('sounds/feed.mp3'));
+    playSoundRef.current = new Audio(getAssetPath('sounds/play.mp3'));
+    restSoundRef.current = new Audio(getAssetPath('sounds/rest.mp3'));
 
     feedSoundRef.current.volume = 1.0;
     playSoundRef.current.volume = 0.5;
