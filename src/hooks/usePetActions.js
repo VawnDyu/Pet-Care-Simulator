@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { getAssetPath } from "../utils/getAssetPath";
 
-export function usePetActions() {
+export function usePetActions(isMuted) {
   const [lastAction, setLastAction] = useState({ type: null, id: 0 });
   const [canClick, setCanClick] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
 
   const feedSoundRef = useRef(null);
   const playSoundRef = useRef(null);
@@ -17,8 +16,8 @@ export function usePetActions() {
     restSoundRef.current = new Audio(getAssetPath('sounds/rest.mp3'));
 
     feedSoundRef.current.volume = 1.0;
-    playSoundRef.current.volume = 0.5;
-    restSoundRef.current.volume = 0.5;
+    playSoundRef.current.volume = 0.3;
+    restSoundRef.current.volume = 0.3;
   }, []);
 
   const playSound = (audioRef) => {
@@ -46,7 +45,6 @@ export function usePetActions() {
       playSound(feedSoundRef);
       setHunger((prev) => Math.min(prev + 15, 100));
 
-      // When sick, feeding also increases happiness a bit!
       if (isSick) {
         setHappiness((prev) => Math.min(prev + 10, 100));
       } else {
@@ -82,7 +80,6 @@ export function usePetActions() {
       playSound(restSoundRef);
       setEnergy((prev) => Math.min(prev + 20, 100));
 
-      // When sick, resting also increases happiness a bit!
       if (isSick) {
         setHappiness((prev) => Math.min(prev + 10, 100));
       } else {
@@ -99,6 +96,5 @@ export function usePetActions() {
     lastAction,
     withCooldown,
     createActions,
-    setIsMuted,
   };
 }

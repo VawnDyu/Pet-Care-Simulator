@@ -16,6 +16,8 @@ import ThemeSelector from "./components/ThemeSelector";
 import ThemeEffects from "./components/ThemeEffects";
 import { usePetStats } from "./hooks/usePetStats";
 import { usePetActions } from "./hooks/usePetActions";
+import { useBackgroundMusic } from "./hooks/useBackgroundMusic";
+import { useSoundEffects } from "./hooks/useSoundEffects";
 import { useAchievements } from "./hooks/useAchievements";
 import { useCurrency } from "./hooks/useCurrency";
 import { useTheme } from "./hooks/useTheme";
@@ -26,7 +28,7 @@ import "./styles/App.css";
 
 function App() {
   const { happiness, hunger, energy, isLoaded, setHappiness, setHunger, setEnergy } = usePetStats();
-  const { lastAction, withCooldown, createActions, setIsMuted } = usePetActions();
+  const [isMuted, setIsMuted] = useState(false);
   const { achievements, unlockedAchievements, newAchievement, trackAction, updatePetStats } = useAchievements();
   const { coins, earnCoins, spendCoins, recentEarning } = useCurrency();
   const { currentTheme, setCurrentTheme, getThemeColor } = useTheme();
@@ -51,8 +53,22 @@ function App() {
   const [petName, setPetName] = useState("");
   const criticalTrackedRef = useRef(false);
 
+  // Load mute preference FIRST
+  useEffect(() => {
+    const savedMute = localStorage.getItem("soundMuted");
+    if (savedMute === "true") {
+      setIsMuted(true);
+    }
+  }, []);
+
+  // Initialize all sound systems AFTER isMuted is set
+  const { lastAction, withCooldown, createActions } = usePetActions(isMuted);
+  useBackgroundMusic(currentTheme, isMuted);
+  const { playSound } = useSoundEffects(isMuted);
+
   const { isSick, setIsSick } = useSickness(happiness, hunger, energy, trackAction, earnCoins, setShowSickOverlay);
 
+  // NOW we can call createActions
   const { handleFeed, handlePlay, handleRest } = createActions(
     setHappiness,
     setHunger,
@@ -83,30 +99,35 @@ function App() {
     withCooldown(handleFeed);
     trackAction("feed");
     earnCoins(5, "Feed");
+    playSound("coin");
   };
 
   const trackPlay = () => {
     withCooldown(handlePlay);
     trackAction("play");
     earnCoins(10, "Play");
+    playSound("coin");
   };
 
   const trackRest = () => {
     withCooldown(handleRest);
     trackAction("rest");
     earnCoins(3, "Rest");
+    playSound("coin");
   };
 
-  // Earn bonus coins for unlocking achievements
+  // Achievement sound (REMOVED DUPLICATE)
   useEffect(() => {
     if (newAchievement) {
       earnCoins(50, "Achievement");
+      playSound("achievement");
     }
-  }, [newAchievement, earnCoins]);
+  }, [newAchievement, earnCoins, playSound]);
 
   // Handle shop purchases
   const handlePurchase = (item) => {
     if (spendCoins(item.price)) {
+      playSound("purchase");
       if (item.id === "rename") {
         setShowShopModal(false);
         setShowRenameModal(true);
@@ -152,6 +173,7 @@ function App() {
             ...prev,
             medicine: prev.medicine - 1,
           }));
+          playSound("purchase"); // Medicine use sound
           alert("Your pet is cured! 💊");
         } else {
           alert("Your pet is not sick!");
@@ -163,9 +185,41 @@ function App() {
           premium_food: prev.premium_food - 1,
         }));
         earnCoins(5, "Premium Food");
+        playSound("coin");
         alert("Fed your pet premium food! +25 hunger 🍕");
       }
     }
+  };
+
+  // Modal handlers with sounds
+  const openShop = () => {
+    playSound("openModal");
+    setShowShopModal(true);
+  };
+
+  const closeShop = () => {
+    playSound("closeModal");
+    setShowShopModal(false);
+  };
+
+  const openInventory = () => {
+    playSound("openModal");
+    setShowInventory(true);
+  };
+
+  const closeInventory = () => {
+    playSound("closeModal");
+    setShowInventory(false);
+  };
+
+  const openThemes = () => {
+    playSound("openModal");
+    setShowThemeSelector(true);
+  };
+
+  const closeThemes = () => {
+    playSound("closeModal");
+    setShowThemeSelector(false);
   };
 
   // Update achievement stats
@@ -225,37 +279,42 @@ function App() {
         <SickOverlay show={showSickOverlay} onNurse={() => setShowSickOverlay(false)} />
         <ShopModal
           show={showShopModal}
-          onClose={() => setShowShopModal(false)}
+          onClose={closeShop}
           coins={coins}
           onPurchase={handlePurchase}
           ownedItems={ownedItems}
         />
         <Inventory
           show={showInventory}
-          onClose={() => setShowInventory(false)}
+          onClose={closeInventory}
           inventory={inventory}
           onUseItem={handleUseItem}
           isSick={isSick}
         />
         <ThemeSelector
           show={showThemeSelector}
-          onClose={() => setShowThemeSelector(false)}
+          onClose={closeThemes}
           ownedThemes={ownedItems}
           currentTheme={currentTheme}
           onSelectTheme={handleSelectTheme}
         />
-        <AchievementsPanel achievements={achievements} unlockedAchievements={unlockedAchievements} />
-        <button className="shop-toggle" onClick={() => setShowShopModal(true)}>
+        <AchievementsPanel
+          achievements={achievements}
+          unlockedAchievements={unlockedAchievements}
+          onOpen={() => playSound("openModal")}
+          onClose={() => playSound("closeModal")}
+        />
+        <button className="shop-toggle" onClick={openShop}>
           🛍️ Shop
         </button>
-        <button className="shop-toggle" onClick={() => setShowInventory(true)} style={{ top: '8rem' }}>
+        <button className="shop-toggle" onClick={openInventory} style={{ top: '8rem' }}>
           🎒 Inventory
         </button>
-        <button className="shop-toggle" onClick={() => setShowThemeSelector(true)} style={{ top: '11.5rem' }}>
+        <button className="shop-toggle" onClick={openThemes} style={{ top: '11.5rem' }}>
           🎨 Themes
         </button>
         <CoinDisplay coins={coins} recentEarning={recentEarning} />
-        <SoundToggle onToggle={setIsMuted} />
+        <SoundToggle onToggle={setIsMuted} isMuted={isMuted} />
         <AchievementNotification achievement={newAchievement} />
         <Header petName={petName} />
         <PetDisplay

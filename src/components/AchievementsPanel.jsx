@@ -1,28 +1,38 @@
 import { useState } from "react";
 import Achievement from "./Achievement";
 
-function AchievementsPanel({ achievements, unlockedAchievements }) {
+function AchievementsPanel({ achievements, unlockedAchievements, onOpen, onClose }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const unlockedCount = unlockedAchievements.length;
   const totalCount = achievements.length;
 
+  const handleOpen = () => {
+    setIsOpen(true);
+    if (onOpen) onOpen(); // Call the sound callback
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (onClose) onClose(); // Call the sound callback
+  };
+
   return (
     <>
       <button
         className="achievements-toggle"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleOpen}
         title="Achievements"
       >
         🏆 {unlockedCount}/{totalCount}
       </button>
 
       {isOpen && (
-        <div className="achievements-overlay" onClick={() => setIsOpen(false)}>
+        <div className="achievements-overlay" onClick={handleClose}>
           <div className="achievements-panel" onClick={(e) => e.stopPropagation()}>
             <div className="achievements-header">
               <h2>🏆 Achievements</h2>
-              <button className="close-btn" onClick={() => setIsOpen(false)}>✕</button>
+              <button className="close-btn" onClick={handleClose}>✕</button>
             </div>
             <div className="achievements-progress">
               <p>{unlockedCount} of {totalCount} unlocked</p>

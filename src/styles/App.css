@@ -385,6 +385,7 @@ h1 {
 .achievements-toggle:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  color: white;
 }
 
 /* Shop Button (next to achievements) */
@@ -414,6 +415,7 @@ h1 {
 .shop-toggle:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  color: white;
 }
 
 /* Coin Display (top center) */
