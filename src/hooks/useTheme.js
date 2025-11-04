@@ -1,31 +1,5 @@
 import { useState, useEffect } from "react";
-
-const THEME_COLORS = {
-  default: {
-    happy: "#ffe1ed",
-    neutral: "#f8f9ff",
-    tired: "#d8d5f8",
-    sick: "#e8f5e9",
-  },
-  theme_sunset: {
-    happy: "#ffe4b5",
-    neutral: "#ffd4a3",
-    tired: "#ffb88c",
-    sick: "#ffd9b3",
-  },
-  theme_ocean: {
-    happy: "#b3e5fc",
-    neutral: "#e1f5fe",
-    tired: "#81d4fa",
-    sick: "#b2ebf2",
-  },
-  theme_forest: {
-    happy: "#c8e6c9",
-    neutral: "#e8f5e9",
-    tired: "#a5d6a7",
-    sick: "#dcedc8",
-  },
-};
+import { THEME_COLORS } from "../constants/gameConfig";
 
 export function useTheme() {
   const [currentTheme, setCurrentTheme] = useState("default");

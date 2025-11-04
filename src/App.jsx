@@ -24,15 +24,44 @@ import { useTheme } from "./hooks/useTheme";
 import { useModals } from "./hooks/useModals";
 import { useInventory } from "./hooks/useInventory";
 import { useSickness } from "./hooks/useSickness";
+import { useItemSystem } from "./hooks/useItemSystem";
+import { useShopSystem } from "./hooks/useShopSystem";
+import { useFurnitureSystem } from "./hooks/useFurnitureSystem";
+import FurnitureDisplay from "./components/FurnitureDisplay";
+import FurnitureManager from "./components/FurnitureManager";
+import {
+  createTrackedActions,
+  createModalHandlers,
+  getButtonAvailability,
+  isCriticallyLow
+} from "./utils/gameActions";
+import { STAT_THRESHOLDS, ANIMATIONS, STORAGE_KEYS, ACTION_REWARDS } from "./constants/gameConfig";
 import "./styles/App.css";
+import { usePetSelection } from "./hooks/usePetSelection";
+import PetSelector from "./components/PetSelector";
+import { PET_SHOP_ITEMS } from "./constants/petConfig";
 
 function App() {
+  // ===== STATE & HOOKS =====
   const { happiness, hunger, energy, isLoaded, setHappiness, setHunger, setEnergy } = usePetStats();
   const [isMuted, setIsMuted] = useState(false);
-  const { achievements, unlockedAchievements, newAchievement, trackAction, updatePetStats } = useAchievements();
-  const { coins, earnCoins, spendCoins, recentEarning } = useCurrency();
+  const [hasStarted, setHasStarted] = useState(false);
+  const {
+    achievements,
+    unlockedAchievements,
+    newAchievement,
+    trackAction,
+    updatePetStats,
+    trackPurchase,
+    trackCoins,
+    trackFurniture,
+    trackTheme,
+    trackItemUse,
+  } = useAchievements();
+  const { coins, earnCoins, spendCoins, setCoins, recentEarning } = useCurrency(trackCoins);
   const { currentTheme, setCurrentTheme, getThemeColor } = useTheme();
   const { inventory, setInventory, ownedItems, setOwnedItems } = useInventory();
+  const { currentPet, ownedPets: ownedPetsList, switchPet } = usePetSelection(ownedItems);
   const {
     showNameModal,
     setShowNameModal,
@@ -46,6 +75,10 @@ function App() {
     setShowThemeSelector,
     showSickOverlay,
     setShowSickOverlay,
+    showFurnitureManager,
+    setShowFurnitureManager,
+    showPetSelector,
+    setShowPetSelector,
   } = useModals();
 
   const [mood, setMood] = useState("neutral");
@@ -53,22 +86,21 @@ function App() {
   const [petName, setPetName] = useState("");
   const criticalTrackedRef = useRef(false);
 
-  // Load mute preference FIRST
+  // ===== LOAD PREFERENCES =====
   useEffect(() => {
-    const savedMute = localStorage.getItem("soundMuted");
-    if (savedMute === "true") {
-      setIsMuted(true);
-    }
+    const savedMute = localStorage.getItem(STORAGE_KEYS.SOUND_MUTED);
+    if (savedMute === "true") setIsMuted(true);
+
+    const savedStarted = localStorage.getItem(STORAGE_KEYS.HAS_STARTED);
+    if (savedStarted === "true") setHasStarted(true);
   }, []);
 
-  // Initialize all sound systems AFTER isMuted is set
-  const { lastAction, withCooldown, createActions } = usePetActions(isMuted);
-  useBackgroundMusic(currentTheme, isMuted);
+  // ===== INITIALIZE SYSTEMS =====
+  const { lastAction, withCooldown, createActions } = usePetActions(isMuted, currentPet);
+  useBackgroundMusic(currentTheme, isMuted, hasStarted);
   const { playSound } = useSoundEffects(isMuted);
-
   const { isSick, setIsSick } = useSickness(happiness, hunger, energy, trackAction, earnCoins, setShowSickOverlay);
 
-  // NOW we can call createActions
   const { handleFeed, handlePlay, handleRest } = createActions(
     setHappiness,
     setHunger,
@@ -78,187 +110,162 @@ function App() {
     isSick
   );
 
-  // Load pet name on start
-  useEffect(() => {
-    const savedName = localStorage.getItem("petName");
-    if (savedName) {
-      setPetName(savedName);
-    } else if (isLoaded) {
-      setShowNameModal(true);
-    }
-  }, [isLoaded, setShowNameModal]);
+  // ===== CUSTOM SYSTEMS =====
+  const { placedFurniture, placeFurniture, removeFurniture } = useFurnitureSystem(
+    setHappiness,
+    setEnergy,
+    setHunger
+  );
+
+  const { handleUseItem } = useItemSystem(
+    inventory,
+    setInventory,
+    isSick,
+    setIsSick,
+    setHunger,
+    setEnergy,
+    setHappiness,
+    setCoins,
+    earnCoins,
+    playSound,
+    trackItemUse
+  );
+
+  const { handlePurchase } = useShopSystem(
+    spendCoins,
+    playSound,
+    setShowShopModal,
+    setShowRenameModal,
+    setInventory,
+    ownedItems,
+    setOwnedItems,
+    trackPurchase,
+    trackTheme
+  );
+
+  // ===== GAME ACTIONS =====
+  const { trackFeed, trackPlay, trackRest } = createTrackedActions(
+    withCooldown,
+    { handleFeed, handlePlay, handleRest },
+    trackAction,
+    earnCoins,
+    playSound
+  );
+
+  // ===== MODAL HANDLERS =====
+  const { createModalHandler } = createModalHandlers(playSound);
+  const openShop = createModalHandler(setShowShopModal, true);
+  const closeShop = createModalHandler(setShowShopModal, false);
+  const openInventory = createModalHandler(setShowInventory, true);
+  const closeInventory = createModalHandler(setShowInventory, false);
+  const openThemes = createModalHandler(setShowThemeSelector, true);
+  const closeThemes = createModalHandler(setShowThemeSelector, false);
+  const openFurniture = createModalHandler(setShowFurnitureManager, true);
+  const closeFurniture = createModalHandler(setShowFurnitureManager, false);
+  const openPets = createModalHandler(setShowPetSelector, true);
+  const closePets = createModalHandler(setShowPetSelector, false);
+
+  // ===== GAME HANDLERS =====
+  const handleStartGame = () => {
+    setHasStarted(true);
+    localStorage.setItem(STORAGE_KEYS.HAS_STARTED, "true");
+  };
 
   const handleNameSubmit = (name) => {
     setPetName(name);
-    localStorage.setItem("petName", name);
+    localStorage.setItem(STORAGE_KEYS.PET_NAME, name);
     setShowNameModal(false);
   };
 
-  // Track actions for achievements AND earn coins
-  const trackFeed = () => {
-    withCooldown(handleFeed);
-    trackAction("feed");
-    earnCoins(5, "Feed");
-    playSound("coin");
-  };
-
-  const trackPlay = () => {
-    withCooldown(handlePlay);
-    trackAction("play");
-    earnCoins(10, "Play");
-    playSound("coin");
-  };
-
-  const trackRest = () => {
-    withCooldown(handleRest);
-    trackAction("rest");
-    earnCoins(3, "Rest");
-    playSound("coin");
-  };
-
-  // Achievement sound (REMOVED DUPLICATE)
-  useEffect(() => {
-    if (newAchievement) {
-      earnCoins(50, "Achievement");
-      playSound("achievement");
-    }
-  }, [newAchievement, earnCoins, playSound]);
-
-  // Handle shop purchases
-  const handlePurchase = (item) => {
-    if (spendCoins(item.price)) {
-      playSound("purchase");
-      if (item.id === "rename") {
-        setShowShopModal(false);
-        setShowRenameModal(true);
-      } else if (item.type === "consumable") {
-        setInventory((prev) => ({
-          ...prev,
-          [item.id]: (prev[item.id] || 0) + 1,
-        }));
-        alert(`${item.name} added to your inventory!`);
-      } else if (item.type === "theme") {
-        if (!ownedItems.includes(item.id)) {
-          setOwnedItems((prev) => [...prev, item.id]);
-          alert(`${item.name} unlocked! Go to Themes to apply it.`);
-        } else {
-          alert("You already own this theme!");
-        }
-      }
-    }
-  };
-
-  // Handle rename
   const handleRename = (newName) => {
     setPetName(newName);
-    localStorage.setItem("petName", newName);
+    localStorage.setItem(STORAGE_KEYS.PET_NAME, newName);
     setShowRenameModal(false);
     alert(`Your pet is now named ${newName}!`);
   };
 
-  // Handle theme selection
   const handleSelectTheme = (themeId) => {
     setCurrentTheme(themeId);
     setShowThemeSelector(false);
-    alert("Theme applied! ✨");
+    trackTheme('change');
   };
 
-  // Use items from inventory
-  const handleUseItem = (itemId) => {
-    if (inventory[itemId] > 0) {
-      if (itemId === "medicine") {
-        if (isSick) {
-          setIsSick(false);
-          setInventory((prev) => ({
-            ...prev,
-            medicine: prev.medicine - 1,
-          }));
-          playSound("purchase"); // Medicine use sound
-          alert("Your pet is cured! 💊");
-        } else {
-          alert("Your pet is not sick!");
-        }
-      } else if (itemId === "premium_food") {
-        setHunger((prev) => Math.min(prev + 25, 100));
-        setInventory((prev) => ({
-          ...prev,
-          premium_food: prev.premium_food - 1,
-        }));
-        earnCoins(5, "Premium Food");
-        playSound("coin");
-        alert("Fed your pet premium food! +25 hunger 🍕");
-      }
+  // ===== LOAD PET NAME =====
+  useEffect(() => {
+    const savedName = localStorage.getItem(STORAGE_KEYS.PET_NAME);
+    if (savedName) {
+      setPetName(savedName);
+    } else if (isLoaded && hasStarted) {
+      setShowNameModal(true);
     }
-  };
+  }, [isLoaded, hasStarted, setShowNameModal]);
 
-  // Modal handlers with sounds
-  const openShop = () => {
-    playSound("openModal");
-    setShowShopModal(true);
-  };
+  // ===== ACHIEVEMENT EFFECTS =====
+  useEffect(() => {
+    if (newAchievement) {
+      earnCoins(ACTION_REWARDS.ACHIEVEMENT, "Achievement");
+      playSound("achievement");
+    }
+  }, [newAchievement, earnCoins, playSound]);
 
-  const closeShop = () => {
-    playSound("closeModal");
-    setShowShopModal(false);
-  };
-
-  const openInventory = () => {
-    playSound("openModal");
-    setShowInventory(true);
-  };
-
-  const closeInventory = () => {
-    playSound("closeModal");
-    setShowInventory(false);
-  };
-
-  const openThemes = () => {
-    playSound("openModal");
-    setShowThemeSelector(true);
-  };
-
-  const closeThemes = () => {
-    playSound("closeModal");
-    setShowThemeSelector(false);
-  };
-
-  // Update achievement stats
   useEffect(() => {
     updatePetStats(happiness, hunger, energy);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [happiness, hunger, energy]);
 
-  // Track critical stats for achievement
+  // ===== FURNITURE COUNT TRACKING ===== //
   useEffect(() => {
-    if ((happiness === 0 || hunger === 0 || energy === 0) && !criticalTrackedRef.current) {
+  trackFurniture(placedFurniture.length);
+  }, [placedFurniture, trackFurniture]);
+
+  // ===== CRITICAL STATS TRACKING =====
+  useEffect(() => {
+    const isCritical = happiness === 0 || hunger === 0 || energy === 0;
+    const isHealthy = happiness > 0 && hunger > 0 && energy > 0;
+
+    if (isCritical && !criticalTrackedRef.current) {
       trackAction("critical");
       criticalTrackedRef.current = true;
     }
-    if (happiness > 0 && hunger > 0 && energy > 0) {
+    if (isHealthy) {
       criticalTrackedRef.current = false;
     }
   }, [happiness, hunger, energy, trackAction]);
 
-  // Button availability logic
-  const canPlay = !isSick && energy >= 30 && hunger >= 30;
-  const canRest = isSick || energy < 90;
-  const canFeed = isSick || hunger < 90;
-
-  // Trigger shake when any stat is critically low
+  // ===== SHAKE EFFECT =====
   useEffect(() => {
-    if (happiness < 15 || hunger < 15 || energy < 15) {
+    if (isCriticallyLow(happiness, hunger, energy, STAT_THRESHOLDS.CRITICAL)) {
       setShake(true);
-      const timer = setTimeout(() => setShake(false), 400);
+      const timer = setTimeout(() => setShake(false), ANIMATIONS.SHAKE_DURATION);
       return () => clearTimeout(timer);
     }
   }, [happiness, hunger, energy]);
 
+  // ===== COMPUTED VALUES =====
+  const { canPlay, canRest, canFeed } = getButtonAvailability(isSick, energy, hunger);
   const backgroundColor = getThemeColor(isSick ? "sick" : mood);
 
+  // ===== LOADING SCREEN =====
   if (!isLoaded) {
     return <div className="loading-screen">Loading your pet...</div>;
   }
 
+  // ===== WELCOME SCREEN =====
+  if (!hasStarted) {
+    return (
+      <div className="welcome-screen">
+        <div className="welcome-content">
+          <h1>🐾 Pet Simulator</h1>
+          <p>Take care of your virtual pet!</p>
+          <p className="welcome-subtitle">Feed, play, and rest to keep your pet happy and healthy</p>
+          <button className="start-button" onClick={handleStartGame}>
+            Start Game 🎮
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ===== MAIN GAME =====
   return (
     <>
       {showNameModal && <PetNameModal onSubmit={handleNameSubmit} />}
@@ -273,8 +280,9 @@ function App() {
 
       <div
         className={`game-container ${shake ? 'shake' : ''}`}
-        style={{ backgroundColor, transition: 'background-color 0.8s ease' }}
+        style={{ backgroundColor, transition: ANIMATIONS.BACKGROUND_TRANSITION }}
       >
+        <FurnitureDisplay furniture={placedFurniture} onRemove={removeFurniture} />
         <ThemeEffects theme={currentTheme} />
         <SickOverlay show={showSickOverlay} onNurse={() => setShowSickOverlay(false)} />
         <ShopModal
@@ -298,11 +306,26 @@ function App() {
           currentTheme={currentTheme}
           onSelectTheme={handleSelectTheme}
         />
+        <FurnitureManager
+          show={showFurnitureManager}
+          onClose={closeFurniture}
+          inventory={inventory}
+          placedFurniture={placedFurniture}
+          onPlace={placeFurniture}
+          onRemove={removeFurniture}
+        />
         <AchievementsPanel
           achievements={achievements}
           unlockedAchievements={unlockedAchievements}
           onOpen={() => playSound("openModal")}
           onClose={() => playSound("closeModal")}
+        />
+        <PetSelector
+          show={showPetSelector}
+          onClose={closePets}
+          ownedPets={ownedPetsList}
+          currentPet={currentPet}
+          onSelectPet={switchPet}
         />
         <button className="shop-toggle" onClick={openShop}>
           🛍️ Shop
@@ -312,6 +335,12 @@ function App() {
         </button>
         <button className="shop-toggle" onClick={openThemes} style={{ top: '11.5rem' }}>
           🎨 Themes
+        </button>
+        <button className="shop-toggle" onClick={openFurniture} style={{ top: '15rem' }}>
+          🪑 Furniture
+        </button>
+        <button className="shop-toggle" onClick={openPets} style={{ top: '18.5rem' }}>
+          🐾 Pets
         </button>
         <CoinDisplay coins={coins} recentEarning={recentEarning} />
         <SoundToggle onToggle={setIsMuted} isMuted={isMuted} />
@@ -324,6 +353,7 @@ function App() {
           onMoodChange={setMood}
           action={lastAction}
           isSick={isSick}
+          currentPetId={currentPet}
         />
         <StatBars happiness={happiness} hunger={hunger} energy={energy} />
         <ActionButtons

@@ -34,6 +34,30 @@ function ThemeEffects({ theme }) {
           duration: 25,
         }))
       );
+    } else if (theme === "theme_halloween") {
+      // Halloween: Mix of pumpkins, bats, and ghosts
+      const halloweenEmojis = ["🎃", "🦇", "👻", "🕷️"];
+      setParticles(
+        Array.from({ length: 12 }, (_, i) => ({
+          id: i,
+          left: Math.random() * 100,
+          delay: -Math.random() * 15,
+          emoji: halloweenEmojis[Math.floor(Math.random() * halloweenEmojis.length)],
+          duration: 15 + Math.random() * 3, // 15-18s variation
+        }))
+      );
+    } else if (theme === "theme_christmas") {
+      // Christmas: Snowflakes and ornaments
+      const christmasEmojis = ["❄️", "🎄", "⛄", "🎁"];
+      setParticles(
+        Array.from({ length: 14 }, (_, i) => ({
+          id: i,
+          left: Math.random() * 100,
+          delay: -Math.random() * 12,
+          emoji: christmasEmojis[Math.floor(Math.random() * christmasEmojis.length)],
+          duration: 11 + Math.random() * 7, // 11-18s variation
+        }))
+      );
     } else {
       setParticles(
         Array.from({ length: 18 }, (_, i) => ({
@@ -56,7 +80,10 @@ function ThemeEffects({ theme }) {
           ? {
               ...p,
               left: theme === "theme_sunset" ? p.left : Math.random() * 100,
-              top: theme === "default" ? Math.random() * 100 : theme === "theme_sunset" ? 10 + Math.random() * 40 : p.top,
+              top:
+                theme === "default" ? Math.random() * 100 :
+                theme === "theme_sunset" ? 10 + Math.random() * 40 :
+                p.top,
             }
           : p
       )
@@ -114,6 +141,48 @@ function ThemeEffects({ theme }) {
             className="floating-cloud"
             style={{
               top: `${particle.top}%`,
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
+            }}
+            onAnimationIteration={() => handleAnimationIteration(particle.id)}
+          >
+            {particle.emoji}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (theme === "theme_halloween") {
+    return (
+      <div className="theme-effects">
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="spooky-swirl"
+            style={{
+              left: `${particle.left}%`,
+              animationDelay: `${particle.delay}s`,
+              animationDuration: `${particle.duration}s`,
+            }}
+            onAnimationIteration={() => handleAnimationIteration(particle.id)}
+          >
+            {particle.emoji}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (theme === "theme_christmas") {
+    return (
+      <div className="theme-effects">
+        {particles.map((particle) => (
+          <div
+            key={particle.id}
+            className="winter-drift"
+            style={{
+              left: `${particle.left}%`,
               animationDelay: `${particle.delay}s`,
               animationDuration: `${particle.duration}s`,
             }}

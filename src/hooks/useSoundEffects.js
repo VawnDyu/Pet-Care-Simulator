@@ -1,20 +1,24 @@
 import { useRef, useEffect, useCallback } from "react";
 import { getAssetPath } from "../utils/getAssetPath";
+import { SOUND_EFFECTS as SFX } from "../constants/gameConfig";
 
 export function useSoundEffects(isMuted) {
   const soundsRef = useRef({});
+  const {PET: PET_SFX, UI: UI_SFX } = SFX;
 
   useEffect(() => {
     soundsRef.current = {
-      openModal: new Audio(getAssetPath("sounds/open.mp3")),
-      closeModal: new Audio(getAssetPath("sounds/close.mp3")),
-      purchase: new Audio(getAssetPath("sounds/purchase.mp3")),
-      achievement: new Audio(getAssetPath("sounds/achievement.mp3")),
-      coin: new Audio(getAssetPath("sounds/coin.mp3")),
+      openModal: new Audio(getAssetPath(UI_SFX.OPEN_MODAL.src)),
+      closeModal: new Audio(getAssetPath(UI_SFX.CLOSE_MODAL.src)),
+      purchase: new Audio(getAssetPath(UI_SFX.PURCHASE.src)),
+      achievement: new Audio(getAssetPath(UI_SFX.ACHIEVEMENT.src)),
+      coin: new Audio(getAssetPath(UI_SFX.COIN.src)),
+      medicine: new Audio(getAssetPath(PET_SFX.MEDICINE.src)),
+      feed: new Audio(getAssetPath(PET_SFX.FEED.src)),
     };
 
     Object.values(soundsRef.current).forEach((audio) => {
-      audio.volume = 0.5;
+      audio.volume = SFX.VOLUME;
     });
   }, []);
 

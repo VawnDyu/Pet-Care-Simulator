@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-export function useCurrency() {
+export function useCurrency(trackCoins) {
   const [coins, setCoins] = useState(0);
   const [recentEarning, setRecentEarning] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -9,10 +9,16 @@ export function useCurrency() {
   useEffect(() => {
     const saved = localStorage.getItem("coins");
     if (saved) {
-      setCoins(parseInt(saved));
+      const loadedCoins = parseInt(saved);
+      setCoins(loadedCoins);
+
+      // Track initial coins after loading
+      if (trackCoins) {
+        trackCoins(0, loadedCoins);
+      }
     }
     setIsLoaded(true);
-  }, []);
+  }, [trackCoins]);
 
   // Save coins to localStorage (only after initial load)
   useEffect(() => {
@@ -24,12 +30,21 @@ export function useCurrency() {
 
   const earnCoins = useCallback((amount, reason) => {
     console.log(`💰 Earning ${amount} coins from ${reason}`);
-    setCoins((prev) => prev + amount);
+    setCoins((prev) => {
+      const newTotal = prev + amount;
+
+      // Track earned coins
+      if (trackCoins) {
+        trackCoins(amount, newTotal);
+      }
+
+      return newTotal;
+    });
     setRecentEarning({ amount, reason });
 
     // Hide earning notification after 2 seconds
     setTimeout(() => setRecentEarning(null), 2000);
-  }, []);
+  }, [trackCoins]);
 
   const spendCoins = useCallback((amount) => {
     if (coins >= amount) {
@@ -43,6 +58,7 @@ export function useCurrency() {
 
   return {
     coins,
+    setCoins,
     earnCoins,
     spendCoins,
     recentEarning,

@@ -1,31 +1,82 @@
 import { useState, useRef, useEffect } from "react";
 import { getAssetPath } from "../utils/getAssetPath";
+import { PET_ACTION_EFFECTS, SOUND_EFFECTS as SFX } from "../constants/gameConfig";
 
-export function usePetActions(isMuted) {
+export function usePetActions(isMuted, currentPetId = 'cat') {
   const [lastAction, setLastAction] = useState({ type: null, id: 0 });
   const [canClick, setCanClick] = useState(true);
+  const { FEED, PLAY, REST } = PET_ACTION_EFFECTS;
+  const { PET: PET_SFX } = SFX;
 
-  const feedSoundRef = useRef(null);
-  const playSoundRef = useRef(null);
-  const restSoundRef = useRef(null);
+  // Store multiple play sounds
+  const feedSoundRefs = useRef({});
+  const playSoundRefs = useRef({});
+  const restSoundRefs = useRef({});
 
   // Initialize sound instances once
   useEffect(() => {
-    feedSoundRef.current = new Audio(getAssetPath('sounds/feed.mp3'));
-    playSoundRef.current = new Audio(getAssetPath('sounds/play.mp3'));
-    restSoundRef.current = new Audio(getAssetPath('sounds/rest.mp3'));
+    // Feed sounds (different for each pet)
+    Object.keys(PET_SFX.FEED).forEach((petType) => {
+      const soundConfig = PET_SFX.FEED[petType];
+      feedSoundRefs.current[petType] = new Audio(getAssetPath(soundConfig.src));
+      feedSoundRefs.current[petType].volume = soundConfig.volume;
+    });
 
-    feedSoundRef.current.volume = 1.0;
-    playSoundRef.current.volume = 0.3;
-    restSoundRef.current.volume = 0.3;
+    // Rest sounds (different for each pet)
+    Object.keys(PET_SFX.REST).forEach((petType) => {
+      const soundConfig = PET_SFX.REST[petType];
+      restSoundRefs.current[petType] = new Audio(getAssetPath(soundConfig.src));
+      restSoundRefs.current[petType].volume = soundConfig.volume;
+    });
+
+    // Play sounds (different for each pet)
+    Object.keys(PET_SFX.PLAY).forEach((petType) => {
+      const soundConfig = PET_SFX.PLAY[petType];
+      playSoundRefs.current[petType] = new Audio(getAssetPath(soundConfig.src));
+      playSoundRefs.current[petType].volume = soundConfig.volume;
+    });
+    console.log('🔊 Loaded play sounds for:', Object.keys(feedSoundRefs.current));
+    console.log('🔊 Loaded play sounds for:', Object.keys(playSoundRefs.current));
   }, []);
 
   const playSound = (audioRef) => {
-    if (!audioRef.current || isMuted) return;
-    const sound = audioRef.current;
-    sound.pause();
-    sound.currentTime = 0;
-    sound.play().catch(() => {});
+    if (!audioRef || isMuted) return;
+    audioRef.pause();
+    audioRef.currentTime = 0;
+    audioRef.play().catch(() => {});
+  };
+
+  //Get the correct feed sound for current pet
+  const getFeedSound = () => {
+    const petSound = feedSoundRefs.current[currentPetId];
+    if (petSound) {
+      console.log('🔊 Playing sound for:', currentPetId);
+      return petSound;
+    }
+    console.log('🔊 Using default sound for:', currentPetId);
+    return feedSoundRefs.current['default'];
+  };
+
+  //Get the correct feed sound for current pet
+  const getRestSound = () => {
+    const petSound = restSoundRefs.current[currentPetId];
+    if (petSound) {
+      console.log('🔊 Playing sound for:', currentPetId);
+      return petSound;
+    }
+    console.log('🔊 Using default sound for:', currentPetId);
+    return restSoundRefs.current['default'];
+  };
+
+  // Get the correct play sound for current pet
+  const getPlaySound = () => {
+    const petSound = playSoundRefs.current[currentPetId];
+    if (petSound) {
+      console.log('🔊 Playing sound for:', currentPetId);
+      return petSound;
+    }
+    console.log('🔊 Using default sound for:', currentPetId);
+    return playSoundRefs.current['default'];
   };
 
   const withCooldown = (callback, delay = 300) => {
@@ -42,13 +93,13 @@ export function usePetActions(isMuted) {
         return;
       }
 
-      playSound(feedSoundRef);
-      setHunger((prev) => Math.min(prev + 15, 100));
+      playSound(getFeedSound());
+      setHunger((prev) => Math.min(prev + FEED.HUNGER_GAIN, 100));
 
       if (isSick) {
-        setHappiness((prev) => Math.min(prev + 10, 100));
+        setHappiness((prev) => Math.min(prev + FEED.HAPPINESS_GAIN_WHEN_SICK, 100));
       } else {
-        setEnergy((prev) => Math.max(prev - 5, 0));
+        setEnergy((prev) => Math.max(prev - FEED.ENERGY_LOSS, 0));
       }
 
       setLastAction({ type: "feed", id: Date.now() });
@@ -64,10 +115,12 @@ export function usePetActions(isMuted) {
         return;
       }
 
-      playSound(playSoundRef);
-      setHappiness((prev) => Math.min(prev + 15, 100));
-      setEnergy((prev) => Math.max(prev - 10, 0));
-      setHunger((prev) => Math.max(prev - 5, 0));
+      // Play pet-specific sound
+      playSound(getPlaySound());
+
+      setHappiness((prev) => Math.min(prev + PLAY.HAPPINESS_GAIN, 100));
+      setEnergy((prev) => Math.max(prev - PLAY.ENERGY_LOSS, 0));
+      setHunger((prev) => Math.max(prev - PLAY.HUNGER_LOSS, 0));
       setLastAction({ type: "play", id: Date.now() });
     };
 
@@ -77,13 +130,13 @@ export function usePetActions(isMuted) {
         return;
       }
 
-      playSound(restSoundRef);
-      setEnergy((prev) => Math.min(prev + 20, 100));
+      playSound(getRestSound());
+      setEnergy((prev) => Math.min(prev + REST.ENERGY_GAIN, 100));
 
       if (isSick) {
-        setHappiness((prev) => Math.min(prev + 10, 100));
+        setHappiness((prev) => Math.min(prev + REST.HAPPINESS_GAIN_WHEN_SICK, 100));
       } else {
-        setHappiness((prev) => Math.max(prev - 5, 0));
+        setHappiness((prev) => Math.max(prev - REST.HAPPINESS_LOSS_WHEN_HEALTHY, 0));
       }
 
       setLastAction({ type: "rest", id: Date.now() });

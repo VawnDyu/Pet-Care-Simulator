@@ -46,6 +46,28 @@ function ThemeSelector({ show, onClose, ownedThemes, currentTheme, onSelectTheme
         sick: "#dcedc8",
       },
     },
+    {
+      id: "theme_halloween",
+      name: "Halloween",
+      icon: "🎃",
+      colors: {
+        happy: "#ff9500",
+        neutral: "#2d2d2d",
+        tired: "#4a0e4e",
+        sick: "#3d3d3d",
+      },
+    },
+    {
+      id: "theme_christmas",
+      name: "Christmas",
+      icon: "⛄",
+      colors: {
+        happy: "#ff4444",
+        neutral: "#e8f5f0",
+        tired: "#2d5f3f",
+        sick: "#f0e6e6",
+      },
+    },
   ];
 
   return (

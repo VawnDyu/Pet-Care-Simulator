@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import Sparkles from "./Sparkles";
 import { getAssetPath } from "../utils/getAssetPath";
+import { getPetById } from "../constants/petConfig";
 
-function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick }) {
+function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick, currentPetId }) {
   const [mood, setMood] = useState("neutral");
   const [message, setMessage] = useState("");
   const [showSparkles, setShowSparkles] = useState(false);
@@ -11,6 +12,9 @@ function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick })
   const prevHunger = useRef(null);
   const prevHappiness = useRef(null);
   const isFirstRender = useRef(true);
+
+    // Get current pet configuration
+  const petConfig = getPetById(currentPetId);
 
   // 🔹 Update mood logic
   useEffect(() => {
@@ -104,17 +108,23 @@ function PetDisplay({ happiness, hunger, energy, onMoodChange, action, isSick })
     prevEnergy.current = energy;
   }, [happiness, hunger, energy]);
 
+  // Get the correct image path based on pet type and mood
+  const petImagePath = petConfig.moods[mood];
+
   return (
     <div className="pet-display">
       {message && <div key={message} className="speech-bubble">{message}</div>}
       {!isSick && <Sparkles show={showSparkles} timestamp={sparkleTimestamp} />}
       <img
-        src={getAssetPath(`${mood}.png`)}
-        alt={`${mood} pet`}
-        className={`pet-image ${mood}`}
+        src={getAssetPath(petImagePath)}
+        alt={`${mood} ${petConfig.name}`}
+        className={`pet-image ${mood} pet-${currentPetId}`}
       />
       <p>
         Current Mood: <strong>{mood}</strong>
+      </p>
+      <p className="pet-type-label">
+        {petConfig.icon} {petConfig.name}
       </p>
     </div>
   );

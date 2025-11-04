@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { FURNITURE_ITEMS } from '../constants/gameConfig';
+import { PET_SHOP_ITEMS } from "../constants/petConfig";
 
 const SHOP_ITEMS = [
   {
@@ -15,6 +17,22 @@ const SHOP_ITEMS = [
     description: "Restores +25 hunger (instead of +15)",
     icon: "🍕",
     price: 50,
+    type: "consumable",
+  },
+  {
+    id: "energy_drink",
+    name: "Energy Drink",
+    description: "Restores +30 energy and boosts happiness",
+    icon: "⚡",
+    price: 75,
+    type: "consumable",
+  },
+  {
+    id: "birthday_cake",
+    name: "Birthday Cake",
+    description: "Huge happiness boost +40, gives 50 coins back!",
+    icon: "🎂",
+    price: 300,
     type: "consumable",
   },
   {
@@ -49,6 +67,24 @@ const SHOP_ITEMS = [
     price: 150,
     type: "theme",
   },
+  {
+    id: "theme_halloween",
+    name: "Halloween Theme",
+    description: "Spooky pumpkins, bats, and ghosts",
+    icon: "🎃",
+    price: 200,
+    type: "theme",
+  },
+  {
+    id: "theme_christmas",
+    name: "Christmas Theme",
+    description: "Festive snowflakes and ornaments",
+    icon: "🎄",
+    price: 200,
+    type: "theme",
+  },
+  ...FURNITURE_ITEMS,
+  ...PET_SHOP_ITEMS,
 ];
 
 function ShopModal({ show, onClose, coins, onPurchase, ownedItems }) {
@@ -108,37 +144,54 @@ function ShopModal({ show, onClose, coins, onPurchase, ownedItems }) {
           >
             Themes
           </button>
+          <button
+            className={selectedTab === "furniture" ? "active" : ""}
+            onClick={() => setSelectedTab("furniture")}
+          >
+            Furniture
+          </button>
+          <button
+            className={selectedTab === "pet" ? "active" : ""}
+            onClick={() => setSelectedTab("pet")}
+          >
+            Pet
+          </button>
         </div>
 
         <div className="shop-items">
-          {filteredItems.map((item) => {
-            const isOwned = ownedItems.includes(item.id);
-            const canAfford = coins >= item.price;
+{filteredItems.map((item) => {
+  // For furniture, check both inventory and ownedItems
+  const isOwned = item.type === 'furniture'
+    ? ownedItems.includes(item.id)
+    : ownedItems.includes(item.id);
+  const canAfford = coins >= item.price;
 
-            return (
-              <div key={item.id} className={`shop-item ${isOwned ? "owned" : ""}`}>
-                <div className="shop-item-icon">{item.icon}</div>
-                <div className="shop-item-info">
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                  <div className="shop-item-footer">
-                    <span className="shop-item-price">💰 {item.price}</span>
-                    {isOwned ? (
-                      <span className="owned-badge">✓ Owned</span>
-                    ) : (
-                      <button
-                        className="buy-btn"
-                        onClick={() => handlePurchase(item)}
-                        disabled={!canAfford}
-                      >
-                        Buy
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+  return (
+    <div key={item.id} className={`shop-item ${isOwned ? "owned" : ""}`}>
+      <div className="shop-item-icon">{item.icon}</div>
+      <div className="shop-item-info">
+        <h3>{item.name}</h3>
+        <p>{item.description}</p>
+        <div className="shop-item-footer">
+          <span className="shop-item-price">💰 {item.price}</span>
+          {isOwned && item.type === 'furniture' ? (
+            <span className="owned-badge">✓ Owned</span>
+          ) : isOwned ? (
+            <span className="owned-badge">✓ Owned</span>
+          ) : (
+            <button
+              className="buy-btn"
+              onClick={() => handlePurchase(item)}
+              disabled={!canAfford}
+            >
+              Buy
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+})}
         </div>
       </div>
     </div>

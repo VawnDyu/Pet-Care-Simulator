@@ -7,6 +7,8 @@ export function useModals() {
   const [showInventory, setShowInventory] = useState(false);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [showSickOverlay, setShowSickOverlay] = useState(false);
+  const [showFurnitureManager, setShowFurnitureManager] = useState(false);
+  const [showPetSelector, setShowPetSelector] = useState(false);
 
   return {
     showNameModal,
@@ -21,5 +23,9 @@ export function useModals() {
     setShowThemeSelector,
     showSickOverlay,
     setShowSickOverlay,
+    showFurnitureManager,
+    setShowFurnitureManager,
+    showPetSelector,
+    setShowPetSelector,
   };
 }

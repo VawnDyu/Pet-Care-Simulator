@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PET_STAT_DECAY } from "../constants/gameConfig";
 
 export function usePetStats() {
   const [happiness, setHappiness] = useState(80);
@@ -9,9 +10,9 @@ export function usePetStats() {
   // Auto decrease stats
   useEffect(() => {
     const interval = setInterval(() => {
-      setHappiness((prev) => Math.max(prev - 0.5, 0));
-      setHunger((prev) => Math.max(prev - 0.8, 0));
-      setEnergy((prev) => Math.max(prev - 0.3, 0));
+      setHappiness((prev) => Math.max(prev - PET_STAT_DECAY.HAPPINESS, 0));
+      setHunger((prev) => Math.max(prev - PET_STAT_DECAY.HUNGER, 0));
+      setEnergy((prev) => Math.max(prev - PET_STAT_DECAY.ENERGY, 0));
     }, 1000);
 
     return () => clearInterval(interval);

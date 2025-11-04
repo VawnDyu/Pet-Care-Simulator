@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { ACTION_REWARDS } from "../constants/gameConfig";
 
 export function useSickness(happiness, hunger, energy, trackAction, earnCoins, setShowSickOverlay) {
   const [isSick, setIsSick] = useState(false);
@@ -36,7 +37,7 @@ export function useSickness(happiness, hunger, energy, trackAction, earnCoins, s
     if (isSick && happiness > 30 && hunger > 30 && energy > 30) {
       setIsSick(false);
       trackAction("recover");
-      earnCoins(20, "Recovery");
+      earnCoins(ACTION_REWARDS.RECOVER, "Recovery");
     }
   }, [isSick, happiness, hunger, energy, trackAction, earnCoins]);
 
